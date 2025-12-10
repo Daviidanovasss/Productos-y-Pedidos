@@ -1,11 +1,18 @@
+# Importamos de los módulos necesarios para construir la API
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import json
+
+# Importamos la estructura de la tabla hash con los pedidos
+# y el árbol AVL que almacena los productos
 from pedidos import pedidos
 from productos import productos_dict, productos
 
+# Creamos la aplicación FastAPI.
 app = FastAPI()
 
+# Creamos el endpoint raíz '/' donde se generan las estructuras JSON de productos y pedidos,
+# se serializan temporalmente y se devuelven json completas de ambos elementos en la respuesta.
 @app.get("/")
 def root():
     productos_json = productos_dict()
@@ -20,6 +27,8 @@ def root():
     status_code=201
 )
 
+# Definimos el endpoint GET '/productos' que recibe un ID y devuelve el producto asociado.
+# Este proceso incluye serializar el árbol AVL, recorrer sus claves y comprobar si existe el ID solicitado.
 @app.get("/productos")
 async def get_productos(product_id: str):
     productos_json = productos_dict()
@@ -32,6 +41,8 @@ async def get_productos(product_id: str):
     raise HTTPException(status_code=404, detail="Producto no existente")
 
 
+# Creamos el endpoint GET '/pedidos' que puede devolver todos los pedidos o uno específico.
+# Primero serializamos la tabla hash y después validamos si el pedido existe antes de devolverlo.
 @app.get("/pedidos")
 async def get_pedidos(pedido_id : int = None):
    pedidos_string = json.dumps(pedidos.dict())
@@ -43,7 +54,8 @@ async def get_pedidos(pedido_id : int = None):
    else:
         return JSONResponse(content={"message": f"El pedido es: {pedidos_serializados[pedido_id]}"}, status_code=201)
        
-
+# Creamos el endpoint POST '/productos' que permite añadir un producto nuevo.
+# Iniciamos leyendo el JSON recibido, generamos un nuevo ID y verificamos que el producto no exista previamente.
 @app.post("/productos")
 async def agregar_producto(request: Request):
     data = await request.json()
@@ -54,7 +66,9 @@ async def agregar_producto(request: Request):
     productos.insert(nuevo_id, producto)
     return JSONResponse(content={"message": "Producto añadido correctamente"}, status_code=201)
 
-
+# Definimos el endpoint POST '/pedidos' para crear un pedido nuevo.
+# Se validan que los productos estén dentro del árbol binario, se genera un nuevo ID 
+# y se inserta toda la información en la tabla hash.
 @app.post("/pedidos")
 async def agregar_producto(request: Request):
     data = await request.json()
@@ -68,7 +82,8 @@ async def agregar_producto(request: Request):
     return JSONResponse(content={"message": "Pedido añadido correctamente"}, status_code=201)
 
    
-
+# Creamos el endpoint DELETE '/pedidos' para eliminar un pedido según su ID.
+# Verificamos si existe y si es así, lo eliminamos de la tabla hash.
 @app.delete("/pedidos")
 async def delete_pedido(pedido_id: int):
     if pedidos.eliminar(pedido_id) == False:
@@ -77,7 +92,10 @@ async def delete_pedido(pedido_id: int):
         pedidos.eliminar(pedido_id)
         return JSONResponse(content={"message": "Pedido eliminado correctamente"}, status_code=201)
     
-
+    
+# Definimos el endpoint PUT '/pedidos/{pedido_id}' para modificar un pedido existente.
+# Procesamos el JSON recibido, validamos los nuevos productos, eliminamos el pedido previo
+# y lo recreamos con la información actualizada.
 @app.put("/pedidos/{pedido_id}")
 async def put_product(pedido_id: int, request: Request):
     data = await request.json()
