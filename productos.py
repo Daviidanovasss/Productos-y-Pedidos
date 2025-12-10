@@ -11,4 +11,4 @@ productos.insert(6, 'cereales')
 productos.insert(7, 'miel')
 
 def productos_dict():
-    return {int(clave): valor for clave, valor in productos.items()}
+    return {clave: valor for clave, valor in productos.items()}
